@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Property;
 use App\Repository\PropertyRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Doctrine\Common\Persistence\ObjectManager;
 use Symfony\Component\Routing\Annotation\Route;
 
 class PropertyController extends AbstractController
@@ -13,12 +14,17 @@ class PropertyController extends AbstractController
     /**
      * @var PropertyRepository
      */
-
     private $repository;
 
-    public function __construct(PropertyRepository $repository)
+    /**
+     * @var ObjectManager
+     */
+    private $em;
+
+    public function __construct(PropertyRepository $repository, ObjectManager $em)
     {
         $this->repository = $repository;
+        $this->em = $em;
     }
 
     /**
@@ -42,14 +48,33 @@ class PropertyController extends AbstractController
         $em = $this->getDoctrine()->getManager();
         $em->persist($property);
         $em->flush();*/
-
-        $property = $this->repository->findAll();
-
-        dump($property);
+    
+        $property = $this->repository->findAllVisible();
 
         return $this->render('property/index.html.twig', [
             'current_menu' => 'properties',
             'controller_name' => 'PropertyController',
         ]);
     }
+
+    /**
+     * @Route("/biens/{slug}-{id}", name="property.show", requirements={"slug": "[a-z0-9\-]*"})
+     */
+
+     public function show(Property $property, string $slug)
+     {
+        if($property->getSlug() !== $slug){
+            return $this->redirectToRoute('property.show', [
+                'id' => $property->getId(),
+                'slug' => $property->getSlug
+            ], 301);
+        }
+
+        return $this->render('property/show.html.twig', [
+            'current_menu' => 'properties',
+            'controller_name' => 'PropertyController',
+            'property' => $property
+        ]);
+     }
+    
 }
